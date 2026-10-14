@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse completed public Double Move Chess games.">
+  <title>Games · Double Move Chess</title>
+  <script>try{if(localStorage.getItem('dm-theme')==='dark')document.documentElement.classList.add('dark')}catch(error){}</script>
+  <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.base.css">
+  <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.cburnett.css">
+  <link rel="stylesheet" href="/public-site.css?v=20260805c">
+</head>
+<body data-page="games">
+  <a class="skip-link" href="#main">Skip to games</a>
+  <header class="site-header">
+    <div class="site-shell header-inner">
+      <a class="brand" href="/" aria-label="Double Move Chess home">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="chevrons-right"></i></span>
+        Double Move
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/play">Play</a>
+        <a href="/games" aria-current="page">Games</a>
+        <a href="/rules">Rules</a>
+        <a class="nav-analysis" href="/analysis">Analysis</a>
+        <button class="icon-button ghost" id="themeButton" type="button" title="Toggle color theme" aria-label="Toggle color theme">
+          <i data-lucide="moon"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-shell page-main" id="main">
+    <section id="archiveView">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Public archive</p>
+          <h1>Completed games</h1>
+          <p>Replay finished challenges, see where each double move was spent, or take a game into the analysis board.</p>
+        </div>
+        <a class="button" href="/play">Play the engine</a>
+      </div>
+
+      <div class="loading" id="archiveLoading" role="status">
+        <div><div class="spinner" aria-hidden="true"></div>Loading games…</div>
+      </div>
+      <div class="archive-grid" id="archiveGrid" hidden></div>
+      <div class="empty-state" id="archiveEmpty" hidden>
+        <h2>No completed games yet.</h2>
+        <p>Finished games will appear here.</p>
+        <a class="button" href="/play">Start a game</a>
+      </div>
+      <div class="empty-state" id="archiveError" hidden>
+        <h2>Games are unavailable right now.</h2>
+        <p id="archiveErrorText">Please try again in a moment.</p>
+        <button id="retryArchiveButton" type="button">Try again</button>
+      </div>
+      <div class="pager" id="archivePager" hidden>
+        <button class="secondary" id="loadMoreButton" type="button">Load more games</button>
+        <span class="message" id="pagerMessage" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section id="detailView" hidden>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">Game replay</p>
+          <h1 id="detailHeading">Completed game.</h1>
+        </div>
+        <div class="detail-heading-actions">
+          <a class="button" id="detailAnalyzeLink" href="/analysis" hidden>Analyze this game</a>
+          <a class="button secondary" href="/games"><i data-lucide="arrow-left"></i> All games</a>
+        </div>
+      </div>
+
+      <div class="loading" id="detailLoading" role="status">
+        <div><div class="spinner" aria-hidden="true"></div>Loading game…</div>
+      </div>
+      <div class="detail-layout" id="detailContent" hidden>
+        <div class="panel replay-panel">
+          <div class="board-wrap">
+            <div
+              id="replayBoard"
+              class="cg-wrap"
+              tabindex="0"
+              role="application"
+              aria-label="Completed Double Move Chess game board"
+              aria-describedby="replayBoardKeyboardHelp"
+            ></div>
+            <p id="replayBoardKeyboardHelp" class="visually-hidden">Use Left and Right to step through moves. Home returns to the start and End goes to the final position.</p>
+          </div>
+          <div class="replay-controls" aria-label="Replay navigation">
+            <button class="icon-button secondary" id="replayStartButton" type="button" title="Start" aria-label="Go to start"><i data-lucide="skip-back"></i></button>
+            <button class="icon-button secondary" id="replayBackButton" type="button" title="Previous move" aria-label="Previous move"><i data-lucide="chevron-left"></i></button>
+            <span class="replay-counter" id="replayCounter">0 / 0</span>
+            <button class="icon-button secondary" id="replayForwardButton" type="button" title="Next move" aria-label="Next move"><i data-lucide="chevron-right"></i></button>
+            <button class="icon-button secondary" id="replayEndButton" type="button" title="End" aria-label="Go to end"><i data-lucide="skip-forward"></i></button>
+          </div>
+        </div>
+
+        <aside class="side-stack">
+          <section class="panel">
+            <p class="detail-result" id="detailResult">Not finished</p>
+            <h2 class="detail-title" id="detailTermination">Game complete</h2>
+            <div class="detail-players">
+              <div class="detail-player"><span id="detailWhiteName">White</span><span>White</span></div>
+              <div class="detail-player"><span id="detailBlackName">Black</span><span>Black</span></div>
+            </div>
+            <div class="detail-meta" id="detailMeta"></div>
+            <div class="detail-actions">
+              <a class="button secondary" href="/play">Play the engine</a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2 class="panel-title">Move record</h2>
+            <div class="move-record">
+              <div class="move-table-head" aria-hidden="true"><span></span><span>White</span><span>Black</span></div>
+              <ol id="detailMoveList"></ol>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="empty-state" id="detailError" hidden>
+        <h2>We could not load this game.</h2>
+        <p id="detailErrorText">The game may not exist or may not be public.</p>
+        <div class="hero-actions">
+          <button id="retryDetailButton" type="button">Try again</button>
+          <a class="button secondary" href="/games">Back to games</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-shell footer-inner">
+      <span>Completed games only. Active games stay private.</span>
+      <div class="footer-links">
+        <a href="/play">Play</a>
+        <a href="/rules">Rules</a>
+        <a href="/analysis">Analysis</a>
+        <a href="/SOURCE_AND_LICENSES.md">Source &amp; licenses</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/vendor/chess.js/chess-0.12.0.js"></script>
+  <script src="/vendor/lucide/lucide-1.26.0.min.js"></script>
+  <script src="/analysis-state.js?v=20260805c"></script>
+  <script type="module" src="/chessground-loader.js?v=20260805c"></script>
+  <script src="/play.js?v=20260805c"></script>
+  <script src="/games.js?v=20260805c"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "engine": {
+    "repository": "https://github.com/Raffa2005/lc0.git",
+    "revision": "eeb9e769714dab1138b05a9cf7185c30e9233501",
+    "submodule_path": "src/lc0",
+    "supported_backends": [
+      "cuda-auto",
+      "blas",
+      "cuda",
+      "cuda-fp16",
+      "sycl",
+      "sycl-fp16",
+      "sycl-auto"
+    ]
+  },
+  "default_model": "v43-latest",
+  "models": {
+    "v43-latest": {
+      "training_step": 3204500,
+      "release": {
+        "repository": "Raffa2005/Bachelor",
+        "tag": "v43-latest",
+        "asset": "net-03204500.pb.gz"
+      },
+      "installed_filename": "v43-latest.pb.gz",
+      "size_bytes": 190333334,
+      "sha256": "2e4a434e62f0b4d5d74a1033c318c9d9c0bc6ff3ae3a16782b2812651aa39e58",
+      "compatible_engine_revision": "eeb9e769714dab1138b05a9cf7185c30e9233501",
+      "model_card": "MODEL_CARD.md",
+      "provenance": {
+        "base_model": "BT3-768x15x24h-swa-2790000.pb.gz",
+        "base_model_sha256": "e3067757d1fc2dfc66947b21d15ace0cedf4c54254fc1de83d77c378a3e8b8e1"
+      },
+      "fallback_weights": null,
+      "contribution_license": "MIT"
+    }
+  }
+}

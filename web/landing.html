@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Play Double Move Chess against a purpose-built Leela-style engine.">
+  <title>Double Move Chess</title>
+  <script>try{if(localStorage.getItem('dm-theme')==='dark')document.documentElement.classList.add('dark')}catch(error){}</script>
+  <link rel="stylesheet" href="/public-site.css?v=20260805c">
+</head>
+<body data-page="landing">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="site-shell header-inner">
+      <a class="brand" href="/" aria-label="Double Move Chess home">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="chevrons-right"></i></span>
+        Double Move
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/play">Play</a>
+        <a href="/games">Games</a>
+        <a href="/rules">Rules</a>
+        <a class="nav-analysis" href="/analysis">Analysis</a>
+        <button class="icon-button ghost" id="themeButton" type="button" title="Toggle color theme" aria-label="Toggle color theme">
+          <i data-lucide="moon"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="site-shell hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Double Move Chess</p>
+        <h1 id="hero-title">Once per game, move twice.</h1>
+        <p>Each player has one optional Double Move. Activate it before moving, make two legal moves with the same color, then pass the turn.</p>
+        <div class="hero-actions">
+          <a class="button" href="/play">Play the engine <i data-lucide="arrow-right"></i></a>
+          <a class="button secondary" href="/analysis">Open analysis</a>
+          <a class="button secondary" href="/rules">Learn the rules</a>
+        </div>
+      </div>
+
+      <div class="rule-stack" aria-label="How a double move works">
+        <article class="rule-card">
+          <span class="rule-number">01</span>
+          <strong>Choose your moment</strong>
+          <p>Your double move is available once in the game.</p>
+        </article>
+        <article class="rule-card active">
+          <span class="rule-number">02</span>
+          <strong>Make the first move</strong>
+          <p>Activate the ability before moving. Your turn continues.</p>
+        </article>
+        <article class="rule-card">
+          <span class="rule-number">03</span>
+          <strong>Move again</strong>
+          <p>The first move must leave a legal second move. Complete it, then pass the turn.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-section" id="rules" aria-labelledby="rules-title">
+      <div class="site-shell">
+        <div class="section-heading">
+          <p class="eyebrow">The rules</p>
+          <h2 id="rules-title">How the variant works</h2>
+          <p>The objective and ordinary move rules remain those of chess. The single-use ability changes the structure of one turn.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="feature-index">01 / 03</span>
+            <h3>One ability per side</h3>
+            <p>White and Black each begin with one optional Double Move.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-index">02 / 03</span>
+            <h3>Two legal moves</h3>
+            <p>Activate the ability before the first move. The same side then makes the second move immediately.</p>
+          </article>
+          <article class="feature">
+            <span class="feature-index">03 / 03</span>
+            <h3>Checkmate still wins</h3>
+            <p>Every half-move must be legal. The king cannot be captured, and the objective remains checkmate.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="content-section" aria-labelledby="challenge-title">
+      <div class="site-shell">
+        <div class="section-heading">
+          <p class="eyebrow">The challenge</p>
+          <h2 id="challenge-title">Play and review</h2>
+          <p>Play against the model, then open the completed game on the analysis board or replay it from the archive.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="button" href="/play">Start a game</a>
+          <a class="button secondary" href="/games">Browse completed games</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-shell footer-inner">
+      <span>Double Move Chess</span>
+      <div class="footer-links">
+        <a href="/play">Play</a>
+        <a href="/games">Games</a>
+        <a href="/rules">Rules</a>
+        <a href="/analysis">Analysis</a>
+        <a href="/SOURCE_AND_LICENSES.md">Source &amp; licenses</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/vendor/lucide/lucide-1.26.0.min.js"></script>
+  <script src="/play.js?v=20260805c"></script>
+</body>
+</html>

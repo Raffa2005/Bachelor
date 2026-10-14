@@ -1,0 +1,13 @@
+/build/
+/models/
+/runs/
+/.runtime/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.env
+*.sqlite3*
+*.log
+core.*

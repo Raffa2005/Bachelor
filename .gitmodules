@@ -1,0 +1,7 @@
+[submodule "src/lc0"]
+	path = src/lc0
+	url = https://github.com/Raffa2005/lc0.git
+
+[submodule "research/trainer"]
+	path = research/trainer
+	url = https://github.com/Raffa2005/lczero-training.git

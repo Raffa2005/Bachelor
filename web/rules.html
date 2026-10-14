@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Complete rules and edge cases for Double Move Chess.">
+  <title>Rules · Double Move Chess</title>
+  <script>try{if(localStorage.getItem('dm-theme')==='dark')document.documentElement.classList.add('dark')}catch(error){}</script>
+  <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.base.css">
+  <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.cburnett.css">
+  <link rel="stylesheet" href="/public-site.css?v=20260805c">
+</head>
+<body data-page="rules">
+  <a class="skip-link" href="#main">Skip to rules</a>
+  <header class="site-header">
+    <div class="site-shell header-inner">
+      <a class="brand" href="/" aria-label="Double Move Chess home">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="chevrons-right"></i></span>
+        Double Move
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/play">Play</a>
+        <a href="/games">Games</a>
+        <a href="/rules" aria-current="page">Rules</a>
+        <a class="nav-analysis" href="/analysis">Analysis</a>
+        <button class="icon-button ghost" id="themeButton" type="button" title="Toggle color theme" aria-label="Toggle color theme">
+          <i data-lucide="moon"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-shell page-main rules-page" id="main">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">Complete rulebook</p>
+        <h1>Double Move Chess</h1>
+        <p>Standard chess, with one optional single-use ability for each player.</p>
+      </div>
+      <a class="button" href="/play">Play the engine</a>
+    </header>
+
+    <div class="rules-layout">
+      <aside class="rules-index panel" aria-label="Rule sections">
+        <a href="#objective">Objective</a>
+        <a href="#ability">The ability</a>
+        <a href="#legality">Legality and check</a>
+        <a href="#special">Special moves</a>
+        <a href="#draws">End of game</a>
+        <a href="#site-rules">Clocks and takebacks</a>
+        <a href="#fen">Position format</a>
+      </aside>
+
+      <article class="rules-document panel">
+        <section id="objective">
+          <p class="rule-kicker">01</p>
+          <h2>Objective and ordinary play</h2>
+          <p>The objective is still to checkmate the opponent’s king. The board, pieces, turn order, promotion, castling, and en passant otherwise follow standard chess rules.</p>
+          <p>You may not capture the king. A game ends through checkmate or another normal terminal result, not by removing a king from the board.</p>
+        </section>
+
+        <section id="ability">
+          <p class="rule-kicker">02</p>
+          <h2>The Double Move ability</h2>
+          <p>White and Black each begin with one Double Move. It is optional and can be activated only before making the first half of a turn.</p>
+          <ol>
+            <li>Activate Double Move.</li>
+            <li>Make one legal move. The ability is now spent, but the turn does not pass.</li>
+            <li>Make a second legal move with the same color. The turn then passes normally.</li>
+          </ol>
+          <p>The two moves may use the same piece or two different pieces. You cannot activate the ability between the two halves, stop after the first half, or use it again later in the same game line.</p>
+          <p><strong>A Double Move must be completed.</strong> The chosen first half may activate the ability only if it leaves at least one legal second half. If the moving side would have no legal second move, that activated first half is not allowed. The intermediate position is not stalemate because the turn has not been completed. The player must choose a completable Double Move or make an ordinary move instead.</p>
+        </section>
+
+        <section id="legality">
+          <p class="rule-kicker">03</p>
+          <h2>Every half-move must be legal</h2>
+          <p>Every half of a Double Move must be legal at the position where it is played. In particular, neither half may leave your own king in check. The position after the first half is a real intermediate position; the board is not allowed to pass through an illegal state.</p>
+          <p>The first half may check the opponent’s king. The opponent does not reply between the two halves, and checkmate is not evaluated until the turn is complete. You must still make a legal second move. It may continue the check, change it, or remove it, but it may not capture the opponent’s king.</p>
+          <p>This legality requirement is also why an unused Double Move cannot provide a two-step escape from checkmate. To begin a Double Move, the player must have a legal first half. In checkmate there is no legal move at all, so there is no legal first half and the second half can never be reached. The goal remains checkmate.</p>
+
+          <div class="rule-example" aria-labelledby="mate-example-title">
+            <div class="rule-example-heading">
+              <p class="rule-example-label">Worked example</p>
+              <h3 id="mate-example-title">Check first, mate second</h3>
+              <p>White activates Double Move and plays <strong>Qg8+ Qh7#</strong>. Giving check with <strong>Qg8+</strong> is legal because it is still White’s turn between the halves. After <strong>Qh7#</strong>, Black has no legal move, so there is no legal first half with which to begin a Double Move.</p>
+            </div>
+            <div class="rule-board-grid">
+              <figure class="rule-diagram">
+                <div
+                  class="rule-example-board cg-wrap"
+                  id="ruleMateStart"
+                  role="img"
+                  aria-label="Starting position with orange arrows numbered one from b3 to g8 and two from g8 to h7"
+                ></div>
+                <figcaption>
+                  <strong>1 · Qg8+ &nbsp; 2 · Qh7#</strong>
+                  <span>The first arrow gives check; the second delivers mate.</span>
+                </figcaption>
+              </figure>
+              <figure class="rule-diagram">
+                <div
+                  class="rule-example-board cg-wrap"
+                  id="ruleMateFinish"
+                  role="img"
+                  aria-label="Final position after Qh7 checkmate, with the black king on h8 in check"
+                ></div>
+                <figcaption>
+                  <strong>Game over</strong>
+                  <span>Black has no legal first move, so Black cannot begin a Double Move.</span>
+                </figcaption>
+              </figure>
+            </div>
+            <p class="rule-example-note">Black cannot answer with <strong>Kxh7, Kh8</strong>: the first move, Kxh7, walks into the pawn on g6. Nor can Black try <strong>Qg8, Qxh7</strong> or <strong>Bxg6, Bxh7</strong>: Qg8 and Bxg6 each leave the king in check after the first half. Every proposed first half is illegal, so none of these sequences can begin. That is precisely why the position is checkmate even though Black’s Double Move remains unused.</p>
+            <details class="example-fen">
+              <summary>Starting FEN</summary>
+              <code>r2q3k/ppp3p1/2np2Pp/5b2/3P1B2/1Q4P1/PPP2P2/3R2K1 w - - 0 1 WB</code>
+            </details>
+          </div>
+        </section>
+
+        <section id="special">
+          <p class="rule-kicker">04</p>
+          <h2>Captures and special moves</h2>
+          <dl class="rule-definitions">
+            <div>
+              <dt>Captures</dt>
+              <dd>Either half may capture an ordinary opposing piece if the resulting move is legal. A piece captured in the first half is gone before the second half.</dd>
+            </div>
+            <div>
+              <dt>Promotion</dt>
+              <dd>A pawn may promote on either half. If it promotes on the first half, the promoted piece exists immediately and may be used for the second half if it has a legal move.</dd>
+            </div>
+            <div>
+              <dt>Castling</dt>
+              <dd>Castling may be one half of the pair if all normal castling requirements are satisfied at that moment. Rights lost on the first half remain lost on the second.</dd>
+            </div>
+            <div>
+              <dt>En passant</dt>
+              <dd>An en passant capture already available at the start of the turn may be used as the first half. A two-square pawn move creates an en passant opportunity for the opponent only when it is the second half and therefore ends the turn. If the pawn moves first, the second half clears that temporary opportunity before the opponent can respond.</dd>
+            </div>
+          </dl>
+
+          <div class="rule-example" aria-labelledby="ep-example-title">
+            <div class="rule-example-heading">
+              <p class="rule-example-label">Move-order example</p>
+              <h3 id="ep-example-title">Double Move can bypass en passant</h3>
+              <p>Both lines begin with White’s king on h1, pawn on e2, and Black’s pawn on d4. They finish with identical piece placement. Only the order of White’s two moves changes the en passant right.</p>
+            </div>
+            <div class="rule-board-grid">
+              <figure class="rule-diagram">
+                <div
+                  class="rule-example-board cg-wrap"
+                  id="ruleEpAvailable"
+                  role="img"
+                  aria-label="Position after White plays Kg1 then e4, showing Black's legal en passant capture from d4 to e3"
+                ></div>
+                <figcaption>
+                  <strong>Kg1, then e4</strong>
+                  <span>The pawn move ends the turn, so <strong>dxe3 e.p.</strong> is legal.</span>
+                </figcaption>
+              </figure>
+              <figure class="rule-diagram">
+                <div
+                  class="rule-example-board cg-wrap"
+                  id="ruleEpBypassed"
+                  role="img"
+                  aria-label="Position after White plays e4 then Kg1, showing that e3 is not an en passant target"
+                ></div>
+                <figcaption>
+                  <strong>e4, then Kg1</strong>
+                  <span>The king move ends the turn; the e3 target has expired, so <strong>dxe3</strong> is illegal.</span>
+                </figcaption>
+              </figure>
+            </div>
+            <p class="rule-example-note">Consequently, a player may deliberately use Double Move to avoid offering en passant: make the two-square pawn move first, then complete the turn with another legal move.</p>
+            <details class="example-fen">
+              <summary>Starting FEN</summary>
+              <code>7k/8/8/8/3p4/8/4P3/7K w - - 0 1 WB</code>
+            </details>
+          </div>
+        </section>
+
+        <section id="draws">
+          <p class="rule-kicker">05</p>
+          <h2>End of game and draws</h2>
+          <p>When a turn passes, either after an ordinary move or after the second half of a Double Move, the other side must have a legal move. If its king is in check and no legal move exists, that is checkmate. An unused Double Move does not change this because there is no legal first half with which to activate it. An intermediate position between the two halves is not stalemate, does not itself end the game, and is not counted as a completed-turn repetition. If it has no legal second half, the proposed Double Move was illegal from the start. Normal stalemate, insufficient-material, fifty-move, and repetition rules otherwise apply.</p>
+        </section>
+
+        <section id="site-rules">
+          <p class="rule-kicker">06</p>
+          <h2>Clocks and takebacks on this site</h2>
+          <p>With a clock, the moving player’s time continues to run between the two halves. The increment is added once, after the entire turn is complete. Unlimited games have no running clock.</p>
+          <p>A takeback is a site feature rather than a rule of the variant. It restores the previous human decision point and is recorded in the saved game, including the number of takebacks used.</p>
+        </section>
+
+        <section id="fen">
+          <p class="rule-kicker">07</p>
+          <h2>Double Move FEN</h2>
+          <p>The Analysis board and Advanced game setup accept normal FEN plus an optional seventh field describing which abilities remain:</p>
+          <div class="fen-table" role="table" aria-label="Double Move FEN ability fields">
+            <div role="row"><code>WB</code><span>Both abilities available</span></div>
+            <div role="row"><code>W-</code><span>Only White available</span></div>
+            <div role="row"><code>-B</code><span>Only Black available</span></div>
+            <div role="row"><code>--</code><span>Neither available</span></div>
+          </div>
+          <p>An <code>m</code> suffix marks that the side to move is between the two halves, for example <code>-Bm</code>. In such a position that side’s ability must already be spent, and at least one legal second half must exist.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-shell footer-inner">
+      <span>Double Move Chess</span>
+      <div class="footer-links">
+        <a href="/play">Play</a>
+        <a href="/games">Games</a>
+        <a href="/rules">Rules</a>
+        <a href="/analysis">Analysis</a>
+        <a href="/SOURCE_AND_LICENSES.md">Source &amp; licenses</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/vendor/lucide/lucide-1.26.0.min.js"></script>
+  <script src="/play.js?v=20260805c"></script>
+  <script src="/rules.js?v=20260805c"></script>
+  <script type="module" src="/chessground-loader.js?v=20260805c"></script>
+</body>
+</html>

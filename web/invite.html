@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Use an invitation to access Double Move Chess.">
+  <title>Invitation · Double Move Chess</title>
+  <script>try{if(localStorage.getItem('dm-theme')==='dark')document.documentElement.classList.add('dark')}catch(error){}</script>
+  <link rel="stylesheet" href="/public-site.css?v=20260805c">
+</head>
+<body data-page="invite">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="site-shell header-inner">
+      <a class="brand" href="/" aria-label="Double Move Chess home">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="chevrons-right"></i></span>
+        Double Move
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="/rules">Rules</a>
+        <button class="icon-button ghost" id="themeButton" type="button" title="Toggle color theme" aria-label="Toggle color theme">
+          <i data-lucide="moon"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="invite-main" id="main">
+    <section class="invite-card" aria-labelledby="inviteTitle">
+      <p class="eyebrow">Private access</p>
+      <h1 id="inviteTitle">Checking your invitation</h1>
+      <p class="invite-message" id="inviteMessage" role="status" aria-live="polite">
+        One moment.
+      </p>
+      <a class="button invite-continue" id="inviteContinue" href="/" hidden>
+        Continue to the site <i data-lucide="arrow-right"></i>
+      </a>
+      <noscript>
+        <p class="invite-message error">JavaScript is required to redeem an invitation.</p>
+      </noscript>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-shell footer-inner">
+      <span>Double Move Chess</span>
+      <div class="footer-links">
+        <a href="/rules">Rules</a>
+        <a href="/SOURCE_AND_LICENSES.md">Source &amp; licenses</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/vendor/lucide/lucide-1.26.0.min.js"></script>
+  <script src="/play.js?v=20260805c"></script>
+  <script src="/invite.js?v=20260805c"></script>
+</body>
+</html>

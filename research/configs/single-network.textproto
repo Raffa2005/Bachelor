@@ -1,0 +1,263 @@
+name: "double-strike"
+data_loader {
+  stage {
+    name: "file_path_provider"
+    file_path_provider {
+      directory: "runs/double-strike/training_data"
+      output {
+        queue_capacity: 32
+      }
+    }
+  }
+  stage {
+    name: "chunk_source_loader"
+    input: "file_path_provider"
+    chunk_source_loader {
+      threads: 8
+      output {
+        queue_capacity: 32
+      }
+      frame_format: V6TrainingData
+    }
+  }
+  stage {
+    name: "shuffling_chunk_pool"
+    input: "chunk_source_loader"
+    shuffling_chunk_pool {
+      chunk_pool_size: 32000000
+      source_ingestion_threads: 4
+      chunk_loading_threads: 16
+      output {
+        queue_capacity: 32
+      }
+    }
+  }
+  stage {
+    name: "chunk_unpacker"
+    input: "shuffling_chunk_pool"
+    chunk_unpacker {
+      threads: 8
+      position_sampling_rate: 1.0
+      output {
+        queue_capacity: 32
+      }
+    }
+  }
+  stage {
+    name: "shuffling_frame_sampler"
+    input: "chunk_unpacker"
+    shuffling_frame_sampler {
+      threads: 4
+      reservoir_size_per_thread: 625000
+      output {
+        queue_capacity: 16
+      }
+    }
+  }
+  stage {
+    name: "tensor_generator"
+    input: "shuffling_frame_sampler"
+    tensor_generator {
+      threads: 8
+      batch_size: 1024
+      output {
+        queue_capacity: 8
+      }
+    }
+  }
+  output: "tensor_generator"
+}
+training {
+  schedule {
+    steps_per_network: 1000
+  }
+  lr_schedule {
+    starting_step: 2790000
+    duration_steps: 0
+    lr: 3e-06
+    transition: CONSTANT
+  }
+  checkpoint {
+    path: "runs/double-strike/checkpoints/state"
+    max_to_keep: 2
+  }
+  optimizer {
+    nadamw {
+      beta_1: 0.9
+      beta_2: 0.98
+      epsilon: 1e-07
+      weight_decay: 0.0001
+      decay_selector {
+        rule {
+          match: "**/bias"
+        }
+        rule {
+          match: "**/ln*/**"
+        }
+        rule {
+          match: "**/embedding/embedding/**"
+        }
+        rule {
+          match: "**/policy_heads/**"
+          include: true
+        }
+        rule {
+          match: "**/value_heads/**"
+          include: true
+        }
+        rule {
+          match: "**/movesleft_heads/**"
+          include: true
+        }
+      }
+    }
+    freeze_selector {
+      rule {
+        match: "embedding/**"
+      }
+      rule {
+        match: "value_heads/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/q/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/k/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/promotion_dense/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/q_ab/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/k_ab/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/promotion_dense_ab/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/gate_embed/**"
+      }
+      rule {
+        match: "policy_heads/vanilla/gate_dense1/**"
+      }
+      rule {
+        match: "policy_embedding_shared/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/0/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/1/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/2/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/3/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/4/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/5/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/6/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/7/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/8/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/9/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/10/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/11/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/12/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/13/**"
+      }
+      rule {
+        match: "encoders/encoders/layers/14/**"
+      }
+      otherwise_include: true
+    }
+    embedding_kernel_row_mode: ALL_ROWS
+  }
+  losses {
+    policy {
+      head_name: "vanilla"
+      metric_name: "main_ce"
+      weight: 1.0
+      illegal_moves: MASK
+      type: CROSS_ENTROPY
+      burn_focus_alpha: 2.6
+      burn_focus_max_weight: 3.6
+      proof_focus_weight: 7.0
+    }
+    value {
+      head_name: "winner"
+      metric_name: "winner"
+      weight: 1.0
+    }
+    movesleft {
+      head_name: "main"
+      metric_name: "main"
+    }
+  }
+  max_grad_norm: 10.0
+}
+model {
+  defaults {
+    compute_dtype: BF16
+    activation: ACTIVATION_MISH
+    ffn_activation: ACTIVATION_MISH
+  }
+  embedding {
+    dense_size: 128
+    embedding_size: 768
+    dff: 1024
+  }
+  encoder {
+    num_blocks: 15
+    dff: 1024
+    d_model: 768
+    heads: 24
+    smolgen {
+      hidden_channels: 32
+      hidden_size: 256
+      gen_size: 256
+      activation: ACTIVATION_NONE
+    }
+  }
+  shared_policy_embedding_size: 768
+  policy_head {
+    name: "vanilla"
+    d_model: 768
+    gate_hidden_dim: 256
+  }
+  value_head {
+    name: "winner"
+    num_channels: 32
+  }
+  movesleft_head {
+    name: "main"
+    num_channels: 8
+  }
+}
+metrics {
+  tensorboard_path: "runs/double-strike/tensorboard"
+}
+export {
+  destination_filename: "runs/double-strike/exported_models/net-{step:08d}.pb.gz"
+}

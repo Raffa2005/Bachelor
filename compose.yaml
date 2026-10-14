@@ -1,0 +1,33 @@
+services:
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DM_PROFILE: hosted
+      DM_HOST: 0.0.0.0
+      DM_PORT: "8082"
+      DM_BACKEND_OPTIONS: "${DM_BACKEND_OPTIONS:-threads=4}"
+      DM_ENGINE_THREADS: "${DM_ENGINE_THREADS:-1}"
+      DM_DATABASE_PATH: /var/lib/double-move/games.sqlite3
+      DM_ACCESS_DATABASE_PATH: /var/lib/double-move/access.sqlite3
+      DM_PUBLIC_ORIGIN: "${DM_PUBLIC_ORIGIN:-}"
+      DM_CSRF_SECRET: "${DM_CSRF_SECRET:-}"
+    ports:
+      - "127.0.0.1:8082:8082"
+    volumes:
+      - game-data:/var/lib/double-move
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1777
+      - /run:rw,noexec,nosuid,nodev,size=1m,mode=0755
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    stop_grace_period: 20s
+
+volumes:
+  game-data:
