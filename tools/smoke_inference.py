@@ -51,6 +51,36 @@ def _move_visits(block, move):
     )
 
 
+def _policy_value_signature(block):
+    priors = {}
+    value = None
+    for line in block:
+        payload = str(line).removeprefix("info string ").strip()
+        move = VERBOSE_MOVE_RE.match(payload)
+        if move:
+            prior = re.search(r"\bP:\s*([0-9.]+)%", payload)
+            if prior:
+                priors[move.group(1)] = float(prior.group(1))
+        elif payload.startswith("node "):
+            root = re.search(r"\bQ:\s*([-+0-9.]+)", payload)
+            if root:
+                value = float(root.group(1))
+    if not priors or value is None:
+        raise RuntimeError("lc0 did not report root policy and value")
+    return value, priors
+
+
+def _check_fallback_signature(paired, standalone):
+    paired_value, paired_policy = paired
+    value, policy = standalone
+    # Allow the rounding of verbose statistics and small backend differences.
+    if (paired_policy.keys() != policy.keys()
+            or abs(paired_value - value) > 0.0001
+            or any(abs(paired_policy[move] - prior) > 0.02
+                   for move, prior in policy.items())):
+        raise RuntimeError("MoE fallback policy/value differ from standalone BT3")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lc0", required=True)
@@ -78,6 +108,7 @@ def main(argv=None):
     if args.nodes < 1:
         parser.error("--nodes must be at least 1")
 
+    fallback_checks = []
     engine = Lc0(
         args.lc0,
         args.weights,
@@ -168,12 +199,28 @@ def main(argv=None):
                 engine.new_game()
                 engine.set_position("startpos", moves)
                 position = engine.position_info()
-                move, _ponder, _info = engine.go_nodes(args.nodes)
+                block, best_line = engine.verbose_stats(1)
+                move = _bestmove_from_line(best_line)
                 if move not in position["legal"]:
                     raise RuntimeError(f"Fallback returned illegal move: {move!r}")
-            print("MoE pair searched expert, both-spent mid-double, and completed-turn positions.")
+                fallback_checks.append((moves, _policy_value_signature(block)))
     finally:
         engine.quit()
+
+    if fallback_checks:
+        standard = Lc0(
+            args.lc0, args.fallback_weights, backend=args.backend,
+            minibatch_size=args.minibatch_size, launch_with_modules=False,
+        )
+        try:
+            for moves, signature in fallback_checks:
+                standard.new_game()
+                standard.set_position("startpos", moves)
+                block, _best = standard.verbose_stats(1)
+                _check_fallback_signature(signature, _policy_value_signature(block))
+        finally:
+            standard.quit()
+        print("MoE pair searched all phases; mid-double and completed-turn outputs match standalone BT3.")
 
     print(
         f"Inference smoke test passed ({args.backend}, "

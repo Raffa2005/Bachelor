@@ -2,7 +2,7 @@
   "schema_version": 1,
   "engine": {
     "repository": "https://github.com/Raffa2005/lc0.git",
-    "revision": "2ef02f93dadbaa453d052e102996cd8ab6a97259",
+    "revision": "54add01325bc19c49c27b2c764b52a4081afbbae",
     "submodule_path": "src/lc0",
     "supported_backends": [
       "cuda-auto",
@@ -27,7 +27,7 @@
       "installed_filename": "v43-latest.pb.gz",
       "size_bytes": 190333334,
       "sha256": "2e4a434e62f0b4d5d74a1033c318c9d9c0bc6ff3ae3a16782b2812651aa39e58",
-      "compatible_engine_revision": "2ef02f93dadbaa453d052e102996cd8ab6a97259",
+      "compatible_engine_revision": "54add01325bc19c49c27b2c764b52a4081afbbae",
       "model_card": "MODEL_CARD.md",
       "provenance": {
         "base_model": "BT3-768x15x24h-swa-2790000.pb.gz",
@@ -48,7 +48,7 @@
       "installed_filename": "moe1-step00064000.pb.gz",
       "size_bytes": 190252801,
       "sha256": "4ebc9dd7bb519da8084b50798347fb898a6451d90f17ba2f0305fa994f668c39",
-      "compatible_engine_revision": "2ef02f93dadbaa453d052e102996cd8ab6a97259",
+      "compatible_engine_revision": "54add01325bc19c49c27b2c764b52a4081afbbae",
       "model_card": "MODEL_CARD.md",
       "contribution_license": "MIT",
       "fallback_weights": {
