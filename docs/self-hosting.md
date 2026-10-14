@@ -80,6 +80,44 @@ variant network. Additional Meson options can be passed to `setup.sh` with
 repeatable `--meson-option '-Dname=value'` arguments. GPU backends generally offer
 much better throughput than the portable CPU configuration.
 
+## Optional MoE Model
+
+We also provide MoE1, paired with the unchanged BT3 network. Install it alongside
+the default v43 model when building from source:
+
+```sh
+./setup.sh --backend blas --jobs 4 --with-moe
+DM_BACKEND_OPTIONS='threads=4' ./run.sh --engine blas
+```
+
+Setup downloads all three files anonymously and verifies their sizes and SHA-256
+hashes against `runtime/manifest.json`. Its small inference checks cover MoE1's
+expert phase, both-spent positions, and the mid-double continuation. MoE requires
+memory for both networks. Substitute your hardware's backend as described above.
+
+For an existing installation, stop the server, install the pair, and restart:
+
+```sh
+python3 tools/model_manager.py --model moe1-step64000 sync
+python3 tools/model_manager.py --model moe1-step64000 verify
+./run.sh --hosted --engine blas
+```
+
+In **Play**, enable **Advanced** and choose MoE1 in the model selector. In
+**Analysis**, select MoE1 under engine settings. v43 remains the default; to
+explicitly make MoE1 the default for a server, use:
+
+```sh
+./run.sh --hosted --engine blas --model moe1-step64000
+```
+
+The server binds the expert to its verified BT3 fallback for both play and
+analysis. It routes to BT3 whenever both ability flags are spent, including the
+continuation between the two halves of the final double move. BT3 is not offered
+as a separate variant model. An incomplete or altered pair is refused; hosted
+requests cannot provide fallback paths. Stop the server before replacing model
+files. Existing games retain their recorded model identity.
+
 ## Public Deployment
 
 The local profile exposes operator controls and filesystem-oriented analysis

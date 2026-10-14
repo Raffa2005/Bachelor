@@ -52,6 +52,11 @@ tuning, HTTPS deployment, persistent storage, access controls, and updates.
 Use this repository's pinned engine fork: an unmodified regular-chess lc0
 binary does not implement the variant.
 
+To also install the released MoE1/BT3 pair, add `--with-moe` to `setup.sh`.
+Both files are downloaded and integrity-checked. v43 stays the default; MoE1
+can then be selected in Play's Advanced settings and in Analysis. See
+[MoE installation and selection](docs/self-hosting.md#optional-moe-model).
+
 ## Quick Docker Test
 
 ```sh

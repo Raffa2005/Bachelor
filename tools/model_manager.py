@@ -76,47 +76,67 @@ def _load_manifest(path):
     if default_model not in models:
         raise ModelManagerError("default_model is not present in models")
 
+    installed = {}
     for model_id, model in models.items():
         if not isinstance(model_id, str) or not model_id:
             raise ModelManagerError("Model IDs must be non-empty strings")
         if not isinstance(model, dict):
             raise ModelManagerError(f"models.{model_id} must be an object")
-        filename = _require_text(
-            model, "installed_filename", f"models.{model_id}"
-        )
-        if filename != Path(filename).name or filename in (".", ".."):
-            raise ModelManagerError(
-                f"models.{model_id}.installed_filename must be a plain filename"
-            )
-        expected_hash = _require_text(
-            model, "sha256", f"models.{model_id}"
-        ).lower()
-        if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
-            raise ModelManagerError(
-                f"models.{model_id}.sha256 must contain 64 hex characters"
-            )
-        expected_size = model.get("size_bytes")
-        if not isinstance(expected_size, int) or expected_size < 1:
-            raise ModelManagerError(
-                f"models.{model_id}.size_bytes must be a positive integer"
-            )
-        release = model.get("release")
-        if not isinstance(release, dict):
-            raise ModelManagerError(f"models.{model_id}.release must be an object")
-        repository = _require_text(
-            release, "repository", f"models.{model_id}.release"
-        )
-        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
-            raise ModelManagerError(
-                f"models.{model_id}.release.repository is invalid"
-            )
-        _require_text(release, "tag", f"models.{model_id}.release")
-        asset = _require_text(release, "asset", f"models.{model_id}.release")
-        if asset != Path(asset).name or asset in (".", ".."):
-            raise ModelManagerError(
-                f"models.{model_id}.release.asset must be a plain filename"
-            )
+        _validate_artifact(model, f"models.{model_id}")
+        fallback = model.get("fallback_weights")
+        if fallback is not None:
+            if not isinstance(fallback, dict):
+                raise ModelManagerError(f"models.{model_id}.fallback_weights must be an object")
+            _validate_artifact(fallback, f"models.{model_id}.fallback_weights")
+            if fallback["installed_filename"] == model["installed_filename"]:
+                raise ModelManagerError("Expert and fallback must use different filenames")
+        for artifact in model_artifacts(model):
+            filename = artifact["installed_filename"]
+            identity = (artifact["size_bytes"], artifact["sha256"].lower())
+            if filename in installed and installed[filename] != identity:
+                raise ModelManagerError(f"Conflicting declarations for {filename}")
+            installed[filename] = identity
     return manifest
+
+
+def _validate_artifact(model, context):
+    filename = _require_text(model, "installed_filename", context)
+    if filename != Path(filename).name or filename in (".", ".."):
+        raise ModelManagerError(
+            f"{context}.installed_filename must be a plain filename"
+        )
+    expected_hash = _require_text(model, "sha256", context).lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
+        raise ModelManagerError(f"{context}.sha256 must contain 64 hex characters")
+    expected_size = model.get("size_bytes")
+    if type(expected_size) is not int or expected_size < 1:
+        raise ModelManagerError(f"{context}.size_bytes must be a positive integer")
+    release = model.get("release")
+    if not isinstance(release, dict):
+        raise ModelManagerError(f"{context}.release must be an object")
+    repository = _require_text(release, "repository", f"{context}.release")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ModelManagerError(f"{context}.release.repository is invalid")
+    _require_text(release, "tag", f"{context}.release")
+    asset = _require_text(release, "asset", f"{context}.release")
+    if asset != Path(asset).name or asset in (".", ".."):
+        raise ModelManagerError(f"{context}.release.asset must be a plain filename")
+
+
+def model_artifacts(model):
+    """Install the fallback first so a fresh expert is never installed alone."""
+    fallback = model.get("fallback_weights")
+    return (fallback, model) if fallback is not None else (model,)
+
+
+def verify_bundle(model, models_dir):
+    messages = []
+    for artifact in model_artifacts(model):
+        valid, message = verify_model(_model_path(artifact, models_dir), artifact)
+        if not valid:
+            return False, message
+        messages.append(message)
+    return True, "; ".join(messages)
 
 
 def _select_model(manifest, model_id=None):
@@ -314,17 +334,23 @@ def sync_model(manifest_path=DEFAULT_MANIFEST, models_dir=DEFAULT_MODELS_DIR,
     selected, model = _select_model(manifest, model_id)
     destination = _model_path(model, models_dir)
     with _installation_lock(models_dir):
-        valid, message = verify_model(destination, model)
-        if valid:
-            return selected, destination, message, False
-        download_token = token if token is not None else _discover_token()
-        _download_verified(model, destination, download_token)
-        valid, message = verify_model(destination, model)
+        downloaded = False
+        download_token = token
+        for artifact in model_artifacts(model):
+            artifact_path = _model_path(artifact, models_dir)
+            valid, _message = verify_model(artifact_path, artifact)
+            if valid:
+                continue
+            if download_token is None:
+                download_token = _discover_token()
+            _download_verified(artifact, artifact_path, download_token)
+            downloaded = True
+        valid, message = verify_bundle(model, models_dir)
         if not valid:
             raise ModelManagerError(
                 f"Internal error after verified download: {message}"
             )
-        return selected, destination, message, True
+        return selected, destination, message, downloaded
 
 
 def _build_parser():
@@ -334,8 +360,9 @@ def _build_parser():
     parser.add_argument("--model", default=None)
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("sync", help="Download if missing or invalid")
-    subparsers.add_parser("verify", help="Verify the installed model")
+    subparsers.add_parser("verify", help="Verify the model and its required fallback")
     subparsers.add_parser("path", help="Print the expected installed path")
+    subparsers.add_parser("fallback-path", help="Print the required fallback path, if any")
     return parser
 
 
@@ -348,8 +375,13 @@ def main(argv=None):
         if args.command == "path":
             print(destination)
             return 0
+        if args.command == "fallback-path":
+            fallback = model.get("fallback_weights")
+            if fallback is not None:
+                print(_model_path(fallback, args.models_dir))
+            return 0
         if args.command == "verify":
-            valid, message = verify_model(destination, model)
+            valid, message = verify_bundle(model, args.models_dir)
             print(f"{selected}: {message}")
             return 0 if valid else 1
         selected, destination, message, downloaded = sync_model(

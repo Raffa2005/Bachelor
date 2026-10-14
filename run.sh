@@ -6,13 +6,15 @@ manifest_path="$repo_root/runtime/manifest.json"
 models_dir="$repo_root/models"
 engine_kind="auto"
 profile="local"
+model="v43-latest"
 server_args=()
 
 usage() {
   cat <<'EOF'
-Usage: ./run.sh [--hosted] [--engine auto|blas|cuda|sycl] [server options]
+Usage: ./run.sh [--hosted] [--engine auto|blas|cuda|sycl] [--model NAME] [server options]
 
   --hosted       Use the restricted profile intended for a reverse proxy.
+  --model NAME   Default model: v43-latest or installed moe1-step64000.
   --engine NAME  Select the native engine (default: auto). Auto selects
                  sycl-auto and exposes the other backends when the combined
                  SYCL build is available locally.
@@ -28,6 +30,11 @@ while (($#)); do
     --engine)
       [[ $# -ge 2 ]] || { usage >&2; exit 2; }
       engine_kind="$2"
+      shift 2
+      ;;
+    --model)
+      [[ $# -ge 2 ]] || { usage >&2; exit 2; }
+      model="$2"
       shift 2
       ;;
     -h|--help)
@@ -86,13 +93,13 @@ if [[ ! -x "$engine_binary" ]]; then
 fi
 
 if ! python3 -B "$repo_root/tools/model_manager.py" \
-  --manifest "$manifest_path" --models-dir "$models_dir" verify; then
-  echo "Run ./setup.sh to install the verified network." >&2
+  --manifest "$manifest_path" --models-dir "$models_dir" --model "$model" verify; then
+  echo "Run ./setup.sh (with --with-moe for MoE1) to install the verified networks." >&2
   exit 2
 fi
 weights_path="$(
   python3 -B "$repo_root/tools/model_manager.py" \
-    --manifest "$manifest_path" --models-dir "$models_dir" path
+    --manifest "$manifest_path" --models-dir "$models_dir" --model "$model" path
 )"
 
 exec python3 -B "$repo_root/tools/server.py" \

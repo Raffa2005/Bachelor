@@ -27,7 +27,17 @@ encoding and split policy; it is not interchangeable with ordinary lc0 weights.
 The [MoE1 64,000-step release](https://github.com/Raffa2005/Bachelor/releases/tag/moe1-step64000)
 contains the ability-phase expert and its unchanged BT3 fallback. They must be
 paired through the engine's `FallbackWeights` option. The site defaults to v43
-and does not automatically configure this pairing. See [research](research/README.md).
+and configures the verified pair automatically when MoE1 is selected. Install
+it with `./setup.sh --with-moe`; see the
+[self-hosting instructions](docs/self-hosting.md#optional-moe-model).
+
+| Component | Asset | SHA-256 |
+| --- | --- | --- |
+| MoE1 expert | `moe1-step00064000.pb.gz` | `4ebc9dd7bb519da8084b50798347fb898a6451d90f17ba2f0305fa994f668c39` |
+| BT3 fallback | `BT3-768x15x24h-swa-2790000.pb.gz` | `e3067757d1fc2dfc66947b21d15ace0cedf4c54254fc1de83d77c378a3e8b8e1` |
+
+The engine uses BT3 when both ability flags are spent, including a pending
+second half of the final double move. Otherwise it uses the MoE1 expert.
 
 Older model checkpoints can be published on request.
 

@@ -286,11 +286,20 @@ class RuntimeConfig:
 
 
 @dataclass(frozen=True)
+class _FallbackWeights:
+    path: str
+    sha256: str
+    identity: tuple[int, ...]
+
+
+@dataclass(frozen=True)
 class _PublicPlayModelRuntime:
     choice: ModelChoice
     path: str
     size: int
     mtime_ns: int
+    fallback: Optional[_FallbackWeights] = None
+    identity: Optional[tuple[int, ...]] = None
 
 
 class RequestError(Exception):
@@ -416,18 +425,11 @@ class _PublicPlayEngineSessions:
             if backend not in allowed_backends:
                 raise RuntimeError("public-play backend is unavailable")
             try:
-                metadata = os.stat(model.path)
+                _check_model_files(model)
             except OSError as exc:
                 raise RuntimeError(
                     "public-play model is unavailable"
                 ) from exc
-            if (
-                metadata.st_size != model.size
-                or metadata.st_mtime_ns != model.mtime_ns
-            ):
-                raise RuntimeError(
-                    "public-play model changed after server startup"
-                )
             options = {
                 "HistoryFill": "repeat_current",
                 "CPuct": "1.2",
@@ -435,6 +437,8 @@ class _PublicPlayEngineSessions:
                 "DisableAbilityEdges": "false",
                 "SmartPruningFactor": "0",
             }
+            if model.fallback is not None:
+                options["FallbackWeights"] = model.fallback.path
             key = (
                 self.config.lc0_path,
                 model.path,
@@ -457,6 +461,7 @@ class _PublicPlayEngineSessions:
                     minibatch_size=self.config.minibatch_size,
                     opts=options,
                     launch_with_modules=self.config.use_modules,
+                    fallback_weights=options.get("FallbackWeights"),
                 )
                 ENGINE_KEY = key
                 ENGINE_CONTEXT_ID = None
@@ -478,6 +483,76 @@ def _sha256_file(path):
                 break
             digest.update(block)
     return digest.hexdigest()
+
+
+def _file_identity(metadata):
+    return (metadata.st_dev, metadata.st_ino, metadata.st_size,
+            metadata.st_mtime_ns, metadata.st_ctime_ns)
+
+
+def _check_model_files(model):
+    metadata = os.stat(model.path)
+    if (not stat.S_ISREG(metadata.st_mode) or metadata.st_size != model.size
+            or metadata.st_mtime_ns != model.mtime_ns):
+        raise OSError("model changed after server startup")
+    if model.identity is not None and _file_identity(metadata) != model.identity:
+        raise OSError("model changed after server startup")
+    if model.fallback is not None:
+        metadata = os.stat(model.fallback.path)
+        if (not stat.S_ISREG(metadata.st_mode)
+                or _file_identity(metadata) != model.fallback.identity):
+            raise OSError("fallback changed after server startup")
+
+
+def _manifest_model_specs():
+    try:
+        with open(MANIFEST_PATH, encoding="utf-8") as handle:
+            models = json.load(handle).get("models", {})
+    except (OSError, ValueError, TypeError):
+        return ()
+    if not isinstance(models, dict):
+        return ()
+    return tuple(spec for spec in models.values() if isinstance(spec, dict))
+
+
+def _required_fallback(path, sha256=None):
+    """Bind a known expert to the trusted manifest pair, including renamed files."""
+    specifications = _manifest_model_specs()
+    normalized = os.path.abspath(path)
+    specification = next((spec for spec in specifications
+                          if isinstance(spec.get("installed_filename"), str)
+                          and normalized == os.path.abspath(os.path.join(
+                              MODELS_DIR, spec["installed_filename"]))), None)
+    if sha256 is None and os.path.isfile(path):
+        sha256 = _sha256_file(path)
+    if specification is None and sha256 is not None:
+        specification = next((spec for spec in specifications
+                              if spec.get("sha256") == sha256), None)
+    if specification is None:
+        return None
+    if specification.get("sha256") is not None and sha256 != specification["sha256"]:
+        raise OSError("model does not match its manifest declaration")
+    fallback = specification.get("fallback_weights")
+    if fallback is None:
+        return None
+    if not isinstance(fallback, dict):
+        raise OSError("invalid fallback declaration")
+    filename = fallback.get("installed_filename")
+    if (not isinstance(filename, str) or not filename
+            or filename != os.path.basename(filename) or filename in (".", "..")
+            or type(fallback.get("size_bytes")) is not int
+            or fallback["size_bytes"] < 1
+            or not isinstance(fallback.get("sha256"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", fallback["sha256"])):
+        raise OSError("invalid fallback declaration")
+    fallback_path = os.path.abspath(os.path.join(MODELS_DIR, filename))
+    before = os.stat(fallback_path)
+    if (not stat.S_ISREG(before.st_mode) or before.st_size != fallback["size_bytes"]
+            or _sha256_file(fallback_path) != fallback["sha256"]):
+        raise OSError("fallback does not match its manifest declaration")
+    if _file_identity(before) != _file_identity(os.stat(fallback_path)):
+        raise OSError("fallback changed while being verified")
+    return _FallbackWeights(fallback_path, fallback["sha256"], _file_identity(before))
 
 
 def _resolve_public_weights(config):
@@ -527,7 +602,7 @@ def _public_model_id(path, default_path):
 def _manifest_selectable_models(default_path):
     """Return optional, verified-by-declaration model specifications.
 
-    A manifest catalog is only trusted when its declared default resolves to
+    A manifest catalog is only trusted when a declared model resolves to
     the configured default model. This prevents an unrelated checkout or a
     test runtime from silently inheriting this repository's hosted catalog.
     """
@@ -541,7 +616,11 @@ def _manifest_selectable_models(default_path):
     default_model = manifest.get("default_model")
     if not isinstance(declared, dict) or not isinstance(default_model, str):
         return ()
-    default_specification = declared.get(default_model)
+    default_specification = next((spec for spec in declared.values()
+                                 if isinstance(spec, dict)
+                                 and isinstance(spec.get("installed_filename"), str)
+                                 and os.path.abspath(os.path.join(MODELS_DIR, spec["installed_filename"]))
+                                 == os.path.abspath(default_path)), None)
     if not isinstance(default_specification, dict):
         return ()
     default_filename = default_specification.get("installed_filename")
@@ -556,7 +635,7 @@ def _manifest_selectable_models(default_path):
     selectable = []
     for model_id, specification in declared.items():
         if (
-            model_id == default_model
+            specification is default_specification
             or not isinstance(model_id, str)
             or not isinstance(specification, dict)
             or specification.get("selectable") is not True
@@ -669,6 +748,7 @@ def _resolve_public_models(config):
                 )
             ):
                 raise OSError("model does not match its manifest declaration")
+            fallback = _required_fallback(normalized, sha256)
         except OSError:
             if optional:
                 continue
@@ -702,6 +782,8 @@ def _resolve_public_models(config):
                 path=normalized,
                 size=metadata.st_size,
                 mtime_ns=metadata.st_mtime_ns,
+                fallback=fallback,
+                identity=_file_identity(metadata),
             )
         )
     default_id = models[0].choice.id if models else None
@@ -770,6 +852,7 @@ def _resolve_compatibility_models(models):
                 or _sha256_file(path) != expected_hash
             ):
                 continue
+            fallback = _required_fallback(path, expected_hash)
         except OSError:
             continue
         if public_id in seen_ids or expected_hash in seen_hashes:
@@ -787,6 +870,8 @@ def _resolve_compatibility_models(models):
                 path=path,
                 size=metadata.st_size,
                 mtime_ns=metadata.st_mtime_ns,
+                fallback=fallback,
+                identity=_file_identity(metadata),
             )
         )
     return tuple(compatibility)
@@ -1884,6 +1969,11 @@ class BoardServer(SimpleHTTPRequestHandler):
             model_ready = False
         else:
             model_ready = bool(self._discover_weights())
+        if model_ready and self.model_runtimes:
+            try:
+                _check_model_files(self.model_runtimes[0])
+            except OSError:
+                model_ready = False
         service_ready = self.play_service is not None
         storage_ready = False
         if service_ready:
@@ -1943,10 +2033,12 @@ class BoardServer(SimpleHTTPRequestHandler):
         pattern = os.path.join(self.runs_root, "*", "exported_models", "net-*.pb.gz")
         candidates = glob.glob(pattern)
         candidates.sort(key=os.path.getmtime, reverse=True)
+        candidates[:0] = [model.path for model in self.model_runtimes]
         if configured and os.path.isfile(configured):
             candidates.insert(0, configured)
         models = []
         seen = set()
+        catalog = {model.path: model.choice.label for model in self.model_runtimes}
         for path in candidates:
             normalized = os.path.abspath(path)
             if normalized in seen:
@@ -1958,6 +2050,7 @@ class BoardServer(SimpleHTTPRequestHandler):
             else:
                 run_dir = os.path.basename(os.path.dirname(os.path.dirname(path)))
                 name = f"{run_dir} / {os.path.basename(path)}"
+            name = catalog.get(normalized, name)
             models.append({
                 "path": path,
                 "name": name,
@@ -2194,6 +2287,12 @@ class BoardServer(SimpleHTTPRequestHandler):
             )
 
         weights = body.get("weights") or ""
+        if "model_id" in body:
+            selected = next((model for model in self.model_runtimes
+                             if model.choice.id == body["model_id"]), None)
+            if selected is None:
+                raise RequestError("Model is not available")
+            weights = selected.path
         if not weights and config.weights_path and os.path.isfile(config.weights_path):
             weights = config.weights_path
         if not weights:
@@ -2246,6 +2345,18 @@ class BoardServer(SimpleHTTPRequestHandler):
         global ENGINE, ENGINE_KEY, ENGINE_CONTEXT_ID
         _discard_dead_engine()
         lc0_path, weights, backend, minibatch_size, use_modules, opts = self._engine_config_from_body(body)
+        model = next((runtime for runtime in self.model_runtimes
+                      if runtime.path == os.path.abspath(weights)), None)
+        try:
+            if model is not None:
+                _check_model_files(model)
+                fallback = model.fallback
+            else:
+                fallback = _required_fallback(weights)
+        except OSError as exc:
+            raise RequestError("Model or required fallback is unavailable", 503) from exc
+        if fallback is not None:
+            opts["FallbackWeights"] = fallback.path
         key = (lc0_path, weights, backend, minibatch_size, use_modules, tuple(sorted(opts.items())))
         if ENGINE is not None and ENGINE_KEY == key:
             return ENGINE
@@ -2257,6 +2368,7 @@ class BoardServer(SimpleHTTPRequestHandler):
         ENGINE = Lc0(
             lc0_path, weights, backend=backend, minibatch_size=minibatch_size,
             opts=opts, launch_with_modules=use_modules,
+            fallback_weights=opts.get("FallbackWeights"),
         )
         ENGINE_KEY = key
         ENGINE_CONTEXT_ID = None

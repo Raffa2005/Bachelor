@@ -55,6 +55,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lc0", required=True)
     parser.add_argument("--weights", required=True)
+    parser.add_argument("--fallback-weights")
     parser.add_argument("--backend", default="blas")
     parser.add_argument("--minibatch-size", type=int, default=1)
     parser.add_argument("--nodes", type=int, default=1)
@@ -72,6 +73,8 @@ def main(argv=None):
         parser.error(f"lc0 executable not found: {args.lc0}")
     if not os.path.isfile(args.weights):
         parser.error(f"weights not found: {args.weights}")
+    if args.fallback_weights and not os.path.isfile(args.fallback_weights):
+        parser.error(f"fallback weights not found: {args.fallback_weights}")
     if args.nodes < 1:
         parser.error("--nodes must be at least 1")
 
@@ -81,6 +84,7 @@ def main(argv=None):
         backend=args.backend,
         minibatch_size=args.minibatch_size,
         launch_with_modules=False,
+        fallback_weights=args.fallback_weights,
     )
     try:
         engine.set_position("startpos", [])
@@ -158,6 +162,16 @@ def main(argv=None):
             raise RuntimeError(
                 f"lc0 returned an invalid bestmove token: {bestmove!r}"
             )
+        if args.fallback_weights:
+            for moves in (["e2e4+", "d2d4", "e7e5+"],
+                          ["e2e4+", "d2d4", "e7e5+", "d7d5"]):
+                engine.new_game()
+                engine.set_position("startpos", moves)
+                position = engine.position_info()
+                move, _ponder, _info = engine.go_nodes(args.nodes)
+                if move not in position["legal"]:
+                    raise RuntimeError(f"Fallback returned illegal move: {move!r}")
+            print("MoE pair searched expert, both-spent mid-double, and completed-turn positions.")
     finally:
         engine.quit()
 

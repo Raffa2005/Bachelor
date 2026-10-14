@@ -3,9 +3,10 @@ set -euo pipefail
 repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 backend=blas
 skip_smoke=false
+with_moe=false
 build_args=()
 usage() {
-  echo "Usage: $0 [--backend blas|cuda|sycl] [--jobs N] [--meson-option OPTION] [--skip-smoke]"
+  echo "Usage: $0 [--backend blas|cuda|sycl] [--jobs N] [--meson-option OPTION] [--with-moe] [--skip-smoke]"
 }
 while (($#)); do
   case "$1" in
@@ -14,6 +15,7 @@ while (($#)); do
       [[ "$1" != --backend ]] || backend="$2"
       build_args+=("$1" "$2"); shift 2 ;;
     --skip-smoke) skip_smoke=true; shift ;;
+    --with-moe) with_moe=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -36,6 +38,9 @@ if [[ ! -f "$repo_root/src/lc0/meson.build" ]]; then
 fi
 echo "Installing the verified Double Strike Chess network..."
 python3 -B "$repo_root/tools/model_manager.py" sync
+if [[ "$with_moe" == true ]]; then
+  python3 -B "$repo_root/tools/model_manager.py" --model moe1-step64000 sync
+fi
 "$repo_root/tools/build_engine.sh" "${build_args[@]}"
 weights="$(python3 -B "$repo_root/tools/model_manager.py" path)"
 runtime_backend="$backend"
@@ -45,5 +50,12 @@ if [[ "$skip_smoke" != true ]]; then
   python3 -B "$repo_root/tools/smoke_inference.py" \
     --lc0 "$repo_root/build/lc0/$backend/release/lc0" \
     --weights "$weights" --backend "$runtime_backend" --nodes 1
+  if [[ "$with_moe" == true ]]; then
+    python3 -B "$repo_root/tools/smoke_inference.py" \
+      --lc0 "$repo_root/build/lc0/$backend/release/lc0" \
+      --weights "$(python3 -B "$repo_root/tools/model_manager.py" --model moe1-step64000 path)" \
+      --fallback-weights "$(python3 -B "$repo_root/tools/model_manager.py" --model moe1-step64000 fallback-path)" \
+      --backend "$runtime_backend" --nodes 1
+  fi
 fi
 echo "Start the site: ./run.sh --engine $backend"
