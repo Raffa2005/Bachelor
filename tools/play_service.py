@@ -90,6 +90,10 @@ class ModelChoice:
     label: str
     sha256: str
     compatibility_backends: tuple[str, ...] = ()
+    compatibility_identities: tuple[str, ...] = ()
+
+    def matches_identity(self, identity):
+        return identity == self.sha256 or identity in self.compatibility_identities
 
 
 @dataclass(frozen=True)
@@ -2652,12 +2656,12 @@ class PublicPlayService:
             if isinstance(model_id, str)
             else None
         )
-        if configured is None or configured.sha256 != model_sha256:
+        if configured is None or not configured.matches_identity(model_sha256):
             configured = next(
                 (
                     candidate
                     for candidate in self._models_by_id.values()
-                    if candidate.sha256 == model_sha256
+                    if candidate.matches_identity(model_sha256)
                 ),
                 None,
             )

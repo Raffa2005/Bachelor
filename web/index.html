@@ -3296,9 +3296,13 @@ function engineIdentityKey() {
   };
   if (runtimeManaged) {
     identity.modelId = el('modelSelect').value;
+    identity.modelIdentity = el('modelSelect').selectedOptions?.[0]?.dataset?.identity || '';
   }
   if (!runtimeManaged) {
     identity.weights = el('weightsInput').value.trim();
+    if (identity.weights === el('modelSelect').value) {
+      identity.modelIdentity = el('modelSelect').selectedOptions?.[0]?.dataset?.identity || '';
+    }
     identity.lc0 = el('lc0Input').value.trim();
     identity.useModules = el('moduleLoadInput').value === 'true';
     identity.minibatchSize = parseInt(el('minibatchInput').value, 10) || 32;
@@ -4313,6 +4317,7 @@ async function loadModels() {
       const opt = document.createElement('option');
       opt.value = runtimeManaged ? (model.id || '') : model.path;
       opt.textContent = model.name;
+      opt.dataset.identity = model.identity || '';
       select.appendChild(opt);
     }
     if (data.default_model) select.value = data.default_model;

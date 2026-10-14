@@ -116,7 +116,10 @@ analysis. It routes to BT3 whenever both ability flags are spent, including the
 continuation between the two halves of the final double move. BT3 is not offered
 as a separate variant model. An incomplete or altered pair is refused; hosted
 requests cannot provide fallback paths. Stop the server before replacing model
-files. Existing games retain their recorded model identity.
+files. New MoE games and cached analysis identify both file hashes and the routing
+version. Games saved by our earlier public setup remain compatible with this
+exact pair; changing either artifact does not silently change an active game's
+engine. Single-network identities remain unchanged.
 
 ## Public Deployment
 

@@ -43,6 +43,7 @@ try:
     )
     from .dm_cli import DEFAULT_LC0, Lc0, Lc0PositionError
     from .game_store import GameStore, GameStoreError
+    from .routed_models import fallback_specification, model_identity, resume_identities
     from .play_service import (
         ModelChoice,
         PublicPlayError,
@@ -62,6 +63,7 @@ except ImportError:
     )
     from dm_cli import DEFAULT_LC0, Lc0, Lc0PositionError
     from game_store import GameStore, GameStoreError
+    from routed_models import fallback_specification, model_identity, resume_identities
     from play_service import (
         ModelChoice,
         PublicPlayError,
@@ -290,6 +292,8 @@ class _FallbackWeights:
     path: str
     sha256: str
     identity: tuple[int, ...]
+    pair_identity: str
+    compatibility_identities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -532,19 +536,15 @@ def _required_fallback(path, sha256=None):
         return None
     if specification.get("sha256") is not None and sha256 != specification["sha256"]:
         raise OSError("model does not match its manifest declaration")
-    fallback = specification.get("fallback_weights")
-    if fallback is None:
-        return None
-    if not isinstance(fallback, dict):
-        raise OSError("invalid fallback declaration")
-    filename = fallback.get("installed_filename")
-    if (not isinstance(filename, str) or not filename
-            or filename != os.path.basename(filename) or filename in (".", "..")
-            or type(fallback.get("size_bytes")) is not int
-            or fallback["size_bytes"] < 1
-            or not isinstance(fallback.get("sha256"), str)
-            or not re.fullmatch(r"[0-9a-f]{64}", fallback["sha256"])):
-        raise OSError("invalid fallback declaration")
+    try:
+        fallback = fallback_specification(specification)
+        if fallback is None:
+            return None
+        pair_identity = model_identity(specification)
+        compatibility_identities = resume_identities(specification)
+    except ValueError as exc:
+        raise OSError(str(exc)) from exc
+    filename = fallback["installed_filename"]
     fallback_path = os.path.abspath(os.path.join(MODELS_DIR, filename))
     before = os.stat(fallback_path)
     if (not stat.S_ISREG(before.st_mode) or before.st_size != fallback["size_bytes"]
@@ -552,7 +552,8 @@ def _required_fallback(path, sha256=None):
         raise OSError("fallback does not match its manifest declaration")
     if _file_identity(before) != _file_identity(os.stat(fallback_path)):
         raise OSError("fallback changed while being verified")
-    return _FallbackWeights(fallback_path, fallback["sha256"], _file_identity(before))
+    return _FallbackWeights(fallback_path, fallback["sha256"], _file_identity(before),
+                            pair_identity, compatibility_identities)
 
 
 def _resolve_public_weights(config):
@@ -753,6 +754,7 @@ def _resolve_public_models(config):
             if optional:
                 continue
             raise
+        sha256 = fallback.pair_identity if fallback else sha256
         if sha256 in seen_hashes:
             continue
         seen_hashes.add(sha256)
@@ -778,6 +780,7 @@ def _resolve_public_models(config):
                     id=model_id,
                     label=label,
                     sha256=sha256,
+                    compatibility_identities=fallback.compatibility_identities if fallback else (),
                 ),
                 path=normalized,
                 size=metadata.st_size,
@@ -855,17 +858,19 @@ def _resolve_compatibility_models(models):
             fallback = _required_fallback(path, expected_hash)
         except OSError:
             continue
-        if public_id in seen_ids or expected_hash in seen_hashes:
+        identity = fallback.pair_identity if fallback else expected_hash
+        if public_id in seen_ids or identity in seen_hashes:
             continue
         seen_ids.add(public_id)
-        seen_hashes.add(expected_hash)
+        seen_hashes.add(identity)
         compatibility.append(
             _PublicPlayModelRuntime(
                 choice=ModelChoice(
                     id=public_id,
                     label=f"{model_id} (existing games only)",
-                    sha256=expected_hash,
+                    sha256=identity,
                     compatibility_backends=resume_backends,
+                    compatibility_identities=fallback.compatibility_identities if fallback else (),
                 ),
                 path=path,
                 size=metadata.st_size,
@@ -2038,7 +2043,7 @@ class BoardServer(SimpleHTTPRequestHandler):
             candidates.insert(0, configured)
         models = []
         seen = set()
-        catalog = {model.path: model.choice.label for model in self.model_runtimes}
+        catalog = {model.path: model.choice for model in self.model_runtimes}
         for path in candidates:
             normalized = os.path.abspath(path)
             if normalized in seen:
@@ -2050,10 +2055,12 @@ class BoardServer(SimpleHTTPRequestHandler):
             else:
                 run_dir = os.path.basename(os.path.dirname(os.path.dirname(path)))
                 name = f"{run_dir} / {os.path.basename(path)}"
-            name = catalog.get(normalized, name)
+            choice = catalog.get(normalized)
+            name = choice.label if choice else name
             models.append({
                 "path": path,
                 "name": name,
+                "identity": choice.sha256 if choice else "",
                 "run": run_dir,
                 "mtime": os.path.getmtime(path),
             })
@@ -2068,6 +2075,7 @@ class BoardServer(SimpleHTTPRequestHandler):
                     {
                         "id": runtime.choice.id,
                         "name": runtime.choice.label,
+                        "identity": runtime.choice.sha256,
                     }
                     for runtime in runtimes
                 ]

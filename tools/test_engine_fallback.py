@@ -16,6 +16,10 @@ class EngineFallbackTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'refusing an unrouted'):
                 Lc0('/engine', '/variant', fallback_weights='/standard')
             quit_engine.assert_called_once()
+            quit_engine.reset_mock()
+            with self.assertRaisesRegex(RuntimeError, 'refusing an unrouted'):
+                Lc0('/engine', '/variant', opts={'FallbackWeights': '/standard'})
+            quit_engine.assert_called_once()
 
     def test_uci_sets_advertised_fallback_before_new_game(self):
         with patch('tools.dm_cli.subprocess.Popen'), \

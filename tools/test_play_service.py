@@ -2094,6 +2094,29 @@ class PublicPlayServiceTest(unittest.TestCase):
                 }
             )
 
+    def test_saved_game_resumes_with_explicit_identity_migration(self):
+        game = self.create()
+        current = ModelChoice(id="routed-pair", label="MoE1", sha256="b" * 64,
+                              compatibility_identities=("a" * 64,))
+        self.service = self.make_service(models=(current,), default_model_id=current.id)
+        restored = self.service.get_owner_game(self.token, game["id"])["game"]
+        self.assertEqual(restored["moves"], game["moves"])
+        self.assertIn(("public:" + game["id"], current.id, "sycl"), self.sessions.contexts)
+        old_token = self.token
+        config = self.service.get_config(None)
+        self.token = config.session_token
+        self.csrf = config.payload["csrf_token"]
+        fresh = self.create()
+        self.assertEqual(self.store.get_game_for_owner(self.token, fresh["id"])["model"]["sha256"],
+                         current.sha256)
+        self.assertEqual(self.store.get_game_for_owner(old_token, game["id"])["model"]["sha256"],
+                         "a" * 64)
+        self.service = self.make_service(models=(ModelChoice(
+            id=current.id, label=current.label, sha256="c" * 64),), default_model_id=current.id)
+        for saved, token in ((game, old_token), (fresh, self.token)):
+            with self.assertRaises(PublicPlayError):
+                self.service.get_owner_game(token, saved["id"])
+
     def test_completed_owner_game_remains_readable_after_model_change(self):
         game = self.create()
         completed = self.service.resign(

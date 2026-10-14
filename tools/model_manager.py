@@ -17,6 +17,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+try:
+    from .routed_models import resume_identities
+except ImportError:
+    from routed_models import resume_identities
+
 
 TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
@@ -90,6 +95,10 @@ def _load_manifest(path):
             _validate_artifact(fallback, f"models.{model_id}.fallback_weights")
             if fallback["installed_filename"] == model["installed_filename"]:
                 raise ModelManagerError("Expert and fallback must use different filenames")
+        try:
+            resume_identities(model)
+        except ValueError as exc:
+            raise ModelManagerError(f"models.{model_id}: {exc}") from exc
         for artifact in model_artifacts(model):
             filename = artifact["installed_filename"]
             identity = (artifact["size_bytes"], artifact["sha256"].lower())

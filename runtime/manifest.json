@@ -38,6 +38,10 @@
     },
     "moe1-step64000": {
       "display_name": "MoE1 (64k + BT3)",
+      "routing_version": "double-strike-moe1-v1",
+      "resume_identities": {
+        "4ebc9dd7bb519da8084b50798347fb898a6451d90f17ba2f0305fa994f668c39": "254b0e36ee46242524093436a8071797bf31775257afbd9aabc4bc8fae635c2c"
+      },
       "selectable": true,
       "training_step": 64000,
       "release": {

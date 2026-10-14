@@ -258,13 +258,16 @@ class Lc0:
         mark = self._output.mark()
         self._send("uci")
         uci_sequence, _ = self._wait_for("uciok", timeout=30, after=mark)
-        if fallback_weights is not None:
+        effective_fallback = (fallback_weights if fallback_weights is not None
+                              else (opts or {}).get("FallbackWeights"))
+        if effective_fallback:
             advertised = self._output.read(mark, uci_sequence, require_full=True)
             if not any(line.startswith("option name FallbackWeights type string")
                        for line in advertised):
                 self.quit()
                 raise RuntimeError("lc0 does not support UCI FallbackWeights; "
                                    "refusing an unrouted opening search")
+        if fallback_weights is not None:
             opts = dict(opts or {}, FallbackWeights=str(fallback_weights))
         for k, v in _lc0_uci_options(
             smart_pruning_factor=smart_pruning_factor,

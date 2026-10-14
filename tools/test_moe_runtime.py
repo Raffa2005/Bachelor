@@ -7,10 +7,13 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 import unittest
 from unittest import mock
 
 from tools import model_manager, server
+from tools.routed_models import ROUTING_VERSION, model_identity, resume_identities
+from tools.play_service import PublicPlayError, PublicPlayService
 
 
 class MoeRuntimeTest(unittest.TestCase):
@@ -34,6 +37,7 @@ class MoeRuntimeTest(unittest.TestCase):
 
         self.single = dict(artifact("v43.pb.gz"), selectable=True)
         self.expert = dict(artifact("moe.pb.gz"), selectable=True,
+                           routing_version=ROUTING_VERSION,
                            fallback_weights=artifact("bt3.pb.gz"))
         self.manifest = {
             "schema_version": 1,
@@ -109,6 +113,61 @@ class MoeRuntimeTest(unittest.TestCase):
         self.assertEqual([m.choice.id for m in models], ["v43.pb.gz", "moe.pb.gz"])
         self.assertIsNone(models[0].fallback)
         self.assertEqual(models[1].fallback.path, str(self.models_dir / "bt3.pb.gz"))
+        self.assertEqual(models[0].choice.sha256, self.single["sha256"])
+        self.assertEqual(models[1].choice.sha256, model_identity(self.expert))
+        self.assertNotEqual(models[1].choice.sha256, self.expert["sha256"])
+
+    def test_unsupported_routing_is_rejected_by_installer_and_server(self):
+        for routing in (None, "other-routing"):
+            with self.subTest(routing=routing):
+                self.expert["routing_version"] = routing
+                self.write_manifest()
+                with self.assertRaises(model_manager.ModelManagerError):
+                    model_manager._load_manifest(self.manifest_path)
+                self.assertEqual([m.choice.id for m in self.runtimes()], ["v43.pb.gz"])
+        self.single["routing_version"] = ROUTING_VERSION
+        self.write_manifest()
+        with self.assertRaises(OSError):
+            self.runtimes()
+
+    def test_saved_pair_identity_and_explicit_legacy_binding(self):
+        old_identity = self.expert["sha256"]
+        pair_identity = model_identity(self.expert)
+        self.assertEqual(resume_identities(self.expert), ())
+        self.expert["resume_identities"] = {old_identity: pair_identity}
+        self.write_manifest()
+        choice = self.runtimes()[1].choice
+        service = object.__new__(PublicPlayService)
+        service.backend = "blas"
+        service._compatibility_model_ids = set()
+        service._models_by_id = {choice.id: choice}
+        for identity in (old_identity, pair_identity):
+            game = {"model": {"id": "old-name", "sha256": identity}, "backend": "blas"}
+            self.assertEqual(service._game_engine_config(game), (choice.id, "blas"))
+        # Keeping the expert and old binding while replacing BT3 must not resume old games.
+        content = b"different fallback"
+        (self.models_dir / "bt3.pb.gz").write_bytes(content)
+        self.expert["fallback_weights"].update(size_bytes=len(content),
+                                              sha256=hashlib.sha256(content).hexdigest())
+        self.write_manifest()
+        changed = self.runtimes()[1].choice
+        self.assertNotEqual(changed.sha256, pair_identity)
+        self.assertEqual(changed.compatibility_identities, ())
+        service._models_by_id = {changed.id: changed}
+        for identity in (old_identity, pair_identity):
+            game = {"model": {"id": changed.id, "sha256": identity}, "backend": "blas"}
+            with self.assertRaises(PublicPlayError):
+                service._game_engine_config(game)
+
+    def test_menus_expose_verified_pair_identity(self):
+        for local in (False, True):
+            with self.subTest(local=local):
+                handler = self.handler(local=local)
+                handler._send_json = mock.Mock()
+                handler._handle_models()
+                menu = handler._send_json.call_args.args[0]["models"]
+                self.assertEqual([m["identity"] for m in menu],
+                                 [self.single["sha256"], model_identity(self.expert)])
 
     def test_fallback_cannot_overwrite_another_declared_model(self):
         self.expert["fallback_weights"]["installed_filename"] = "v43.pb.gz"
@@ -191,6 +250,8 @@ class MoeRuntimeTest(unittest.TestCase):
                 metadata = target.stat()
                 with mock.patch.object(server, "Lc0", return_value=mock.Mock(proc=None)):
                     handler._get_engine({"model_id": "moe.pb.gz"})
+                    # Some filesystems update ctime at coarser than nanosecond resolution.
+                    time.sleep(0.02)
                     target.write_bytes(b"x" * metadata.st_size)
                     os.utime(target, ns=(metadata.st_atime_ns, metadata.st_mtime_ns))
                     with self.assertRaises(server.RequestError):
