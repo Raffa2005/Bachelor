@@ -577,6 +577,7 @@ class PublicPlayServiceTest(unittest.TestCase):
         self.assertEqual(game["legal_moves"], ["e2e4", "e2e4+", "d2d4"])
         self.assertEqual(game["players"]["white"]["name"], "Alice")
         self.assertEqual(game["players"]["black"]["type"], "engine")
+        self.assertEqual(game["players"]["black"]["name"], "Double Strike Chess Engine")
         self.assertEqual(game["clocks"]["white_ms"], 300_000)
         self.assertEqual(game["model_id"], "v37-public")
         self.assertEqual(game["nodes"], 25)

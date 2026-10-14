@@ -3,7 +3,7 @@
 The image is a portable CPU configuration for quick testing of Double Strike
 Chess. Native, hardware-tuned source builds are recommended for hosting.
 
-Original server and site files are MIT licensed. The combined browser
+We license our original server and site files under MIT. The combined browser
 application uses GPL-3.0-or-later Chessground; its exact source and dependency
 notices are included under `/opt/double-move/web/vendor/`.
 

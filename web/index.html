@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Double Move Analysis Board</title>
+<title>Analysis · Double Strike Chess</title>
 <script>try{if(localStorage.getItem('dm-theme')==='dark')document.documentElement.classList.add('dark')}catch(error){}</script>
 <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.base.css">
 <link rel="stylesheet" href="/vendor/chessground/10.1.1/assets/chessground.cburnett.css">
@@ -1345,8 +1345,8 @@ textarea {
 <body>
 <div class="app">
   <header class="topbar">
-    <a class="brand" href="/" aria-label="Double Move Chess home">
-      <h1>Double Move Board</h1>
+    <a class="brand" href="/" aria-label="Double Strike Chess home">
+      <h1>Double Strike Chess</h1>
       <span>Analysis</span>
     </a>
     <div class="engine-state">
@@ -1382,7 +1382,7 @@ textarea {
             class="cg-wrap"
             tabindex="0"
             role="application"
-            aria-label="Double Move analysis chessboard"
+            aria-label="Double Strike Chess analysis chessboard"
             aria-describedby="boardKeyboardHelp"
           ></div>
           <p id="boardKeyboardHelp" class="visually-hidden">
@@ -2117,7 +2117,7 @@ function syncBoardAccessibility() {
   const selected = keyboardFrom ? ' ' + keyboardFrom + ' selected as the move origin.' : '';
   el('board').setAttribute(
     'aria-label',
-    'Double Move analysis chessboard. ' + turn + ' to move.' + cursor + selected,
+    'Double Strike Chess analysis chessboard. ' + turn + ' to move.' + cursor + selected,
   );
 }
 

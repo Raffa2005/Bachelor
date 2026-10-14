@@ -364,7 +364,7 @@
       }
       byId('replayBoard').setAttribute(
         'aria-label',
-        'Completed Double Move Chess game board, position ' +
+        'Completed Double Strike Chess game board, position ' +
           replayIndex + ' of ' + replay.rawMoves.length + '.',
       );
       byId('replayCounter').textContent = replayIndex + ' / ' + replay.rawMoves.length;

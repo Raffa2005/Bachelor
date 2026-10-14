@@ -849,7 +849,7 @@ def is_uci_move(token):
 
 def main():
     auto_weights = discover_latest_weights()
-    p = argparse.ArgumentParser(description="Interactive double-move chess CLI")
+    p = argparse.ArgumentParser(description="Interactive Double Strike Chess CLI")
     p.add_argument("--weights", default=auto_weights,
                    help="Path to net-NNNN.pb.gz. Default: most-recently-"
                         f"modified export under {RUNS_ROOT}/*/exported_models/."

@@ -29,24 +29,25 @@ contains the ability-phase expert and its unchanged BT3 fallback. They must be
 paired through the engine's `FallbackWeights` option. The site defaults to v43
 and does not automatically configure this pairing. See [research](research/README.md).
 
+Older model checkpoints can be published on request.
+
 ## Origin and Scope
 
-Both networks were fine-tuned from Leela Chess Zero's
+We fine-tuned both networks from Leela Chess Zero's
 `BT3-768x15x24h-swa-2790000.pb.gz` using Double Strike Chess self-play.
 The base network has SHA-256
 `e3067757d1fc2dfc66947b21d15ace0cedf4c54254fc1de83d77c378a3e8b8e1`.
-See the [lc0 network catalogue](https://lczero.org/play/networks/) for upstream
-networks and attribution.
+The [official lc0 catalogue](https://lczero.org/play/networks/bestnets/) links to
+the [original BT3 checkpoint](https://storage.lczero.org/files/networks-contrib/BT3-768x15x24h-swa-2790000.pb.gz).
 
 Use these networks for game play, analysis, and experiments. Search budget,
-hardware, and move sampling affect behavior. Policy-only play can contain
-repeatable tactical errors; evaluations are estimates, not proofs.
+hardware, and move sampling affect behavior.
 
 ## License Scope
 
-Rafael Sabirov's original model modifications and accompanying metadata are
-offered under the [MIT license](LICENSE). This permission covers the author's
-contributions only. It does not grant additional rights to the underlying BT3
-parameters or other upstream material. The lc0 engine's GPL license covers its
-software and is not a separate license grant for pretrained network weights.
+We offer our original model modifications and accompanying metadata under the
+[MIT license](LICENSE). Our grant covers our contributions only; it does not
+relicense the underlying BT3 parameters or other upstream material. The lc0
+engine's GPL license covers its software and is not a separate license grant
+for pretrained network weights.
 Keep the base-model attribution and this notice with redistributed models.

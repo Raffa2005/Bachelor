@@ -77,6 +77,7 @@ needed.
 Training is not required to run the site. Advanced users can start with the
 [research notes](research/README.md). Released networks are described in the
 [model card](MODEL_CARD.md).
+Older model checkpoints can be published on request.
 
 ## Tests
 
@@ -92,7 +93,7 @@ engine and network.
 
 ## Licenses
 
-Original site/server code is MIT licensed. The lc0 engine and the combined
+We license our original site/server code under MIT. The lc0 engine and the combined
 browser application containing Chessground are GPL-3.0-or-later. Individual
 dependencies retain their own notices and licenses. See [Licenses](LICENSES.md),
 [LICENSE](LICENSE), and the [model card](MODEL_CARD.md) for scope and attribution.

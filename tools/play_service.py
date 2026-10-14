@@ -2007,7 +2007,7 @@ class PublicPlayService:
             },
             engine: {
                 "type": "engine",
-                "name": "Double Move Engine",
+                "name": "Double Strike Chess Engine",
                 "preset_label": preset_label,
             },
         }

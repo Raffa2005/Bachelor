@@ -11,6 +11,22 @@ const ruleExamples = require('../rules.js');
 const analysisState = require('../analysis-state.js');
 const { Chess } = require('../vendor/chess.js/chess-0.12.0.js');
 
+test('public pages use Double Strike Chess branding and preserve mechanic terminology', () => {
+  const root = path.resolve(__dirname, '..');
+  for (const file of ['landing.html', 'play.html', 'games.html', 'rules.html', 'invite.html', 'index.html']) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.match(html, /<title>[^<]*Double Strike Chess<\/title>/, file);
+    assert.match(html, /aria-label="Double Strike Chess home"/, file);
+    assert.doesNotMatch(html, /Double Move (?:Chess|Board|Analysis)/, file);
+  }
+  const rules = fs.readFileSync(path.join(root, 'rules.html'), 'utf8');
+  assert.match(rules, /The Double Move ability/);
+  assert.match(rules, /Double Move FEN/);
+  const context = {};
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'play.js'), 'utf8'), context);
+  assert.equal(typeof context.DoubleMovePublic.playerName, 'function');
+});
+
 test('route parsing only accepts one opaque game id segment', () => {
   assert.equal(publicSite.gameIdFromPath('/play/abc-123', 'play'), 'abc-123');
   assert.equal(publicSite.gameIdFromPath('/games/a%20b', 'games'), 'a b');
@@ -479,7 +495,8 @@ test('player labels support object, string, and anonymous records', () => {
   assert.equal(publicSite.playerName({ players: { white: { display_name: 'Ada' } } }, 'w'), 'Ada');
   assert.equal(publicSite.playerName({ players: { black: 'Engine 10' } }, 'b'), 'Engine 10');
   assert.equal(publicSite.playerName({ human_color: 'w' }, 'white'), 'Anonymous challenger');
-  assert.equal(publicSite.playerName({ human_color: 'w' }, 'black'), 'Double Move Engine');
+  assert.equal(publicSite.playerName({ human_color: 'w' }, 'black'), 'Double Strike Chess Engine');
+  assert.equal(publicSite.playerName({ players: { black: { type: 'engine' } } }, 'b'), 'Double Strike Chess Engine');
   assert.equal(publicSite.playerMeta({
     human_color: 'white',
     preset_label: 'Advanced',
@@ -706,7 +723,7 @@ test('analysis keeps its public header on mobile and exposes lower engine settin
   const html = fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
   assert.match(
     html,
-    /<a class="brand" href="\/" aria-label="Double Move Chess home">/,
+    /<a class="brand" href="\/" aria-label="Double Strike Chess home">/,
   );
   const navigation = html.match(
     /<nav class="analysis-site-nav" aria-label="Primary navigation">([\s\S]*?)<\/nav>/,
@@ -825,7 +842,7 @@ test('public boards load the pinned Chessground module and use its native intera
     assert.doesNotMatch(html, /chessboardjs|jquery/);
   }
 
-  assert.match(playHtml, /<section class="game-page" id="gameView" hidden>\s*<h1[^>]*>Play Double Move Chess<\/h1>/);
+  assert.match(playHtml, /<section class="game-page" id="gameView" hidden>\s*<h1[^>]*>Play Double Strike Chess<\/h1>/);
   assert.match(playSource, /root\.Chessground\(byId\('playBoard'\), config\)/);
   assert.match(playSource, /movable:\s*\{[\s\S]*?free:\s*false,[\s\S]*?dests:\s*interactive \? chessgroundDests\(moves\)/);
   assert.match(playSource, /events:\s*\{\s*after:\s*handleGroundMove\s*\}/);

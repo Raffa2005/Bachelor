@@ -121,7 +121,7 @@ FROM ubuntu:24.04 AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-LABEL org.opencontainers.image.title="Double-move chess inference" \
+LABEL org.opencontainers.image.title="Double Strike Chess inference" \
       org.opencontainers.image.source="https://github.com/Raffa2005/Bachelor"
 
 RUN apt-get update \

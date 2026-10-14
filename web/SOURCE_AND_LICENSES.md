@@ -1,21 +1,21 @@
 # Browser frontend source and license notice
 
-The browser frontend delivered from this directory combines project-authored
+Our browser frontend delivered from this directory combines our original
 HTML, CSS, and JavaScript with
 [@lichess-org/chessground 10.1.1](vendor/chessground/10.1.1/README.md).
 Chessground is licensed under GNU GPL version 3 or, at your option, any later
 version. The combined browser frontend is distributed under
 GPL-3.0-or-later.
 
-Project-authored browser files remain available under the repository's root
+Our original browser files remain available under the repository's root
 MIT License when used separately. Those files are also offered under
 GPL-3.0-or-later as part of this combined frontend. This notice does not
 change the separate licenses or notices for the server, engine, model, or
 other third-party browser assets.
 
 The SAN figurines use Lichess’s `lichess-chess.woff2`, attributed to the
-pgn4web authors and distributed upstream under GPL-2.0-or-later. This site
-uses its “or later” option through GPL version 3; provenance is recorded in
+pgn4web authors and distributed upstream under GPL-2.0-or-later. We use
+its “or later” option through GPL version 3; provenance is recorded in
 [`vendor/lichess/SOURCE.md`](vendor/lichess/SOURCE.md).
 
 ## Chessground corresponding source

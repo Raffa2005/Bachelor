@@ -406,11 +406,11 @@
       const value = player.display_name || player.name || player.label;
       if (value) return String(value);
       const type = String(player.type || player.kind || '').toLowerCase();
-      if (type === 'engine' || type === 'computer') return 'Double Move Engine';
+      if (type === 'engine' || type === 'computer') return 'Double Strike Chess Engine';
       if (type === 'human') return 'Anonymous challenger';
     }
     const human = normalizeColor(state && state.human_color);
-    return side === human ? 'Anonymous challenger' : 'Double Move Engine';
+    return side === human ? 'Anonymous challenger' : 'Double Strike Chess Engine';
   }
 
   function playerMeta(state, color) {
@@ -1606,7 +1606,7 @@
       const selected = keyboardFrom ? ' ' + keyboardFrom + ' selected as the move origin.' : '';
       boardElement.setAttribute(
         'aria-label',
-        'Double Move Chess board. ' + turn + ' to move.' + phase + review + cursor + selected,
+        'Double Strike Chess board. ' + turn + ' to move.' + phase + review + cursor + selected,
       );
     }
 
